@@ -1,0 +1,159 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/**
+ *
+ * @author Tonni
+ */
+import java.awt.*;
+import java.applet.*;
+
+class city
+{
+    int x, y;
+    city() { x = random(550)+25; y = random(350)+50; }
+
+  int random(int size)
+      { return (int) (Math.random()*size); }
+}
+
+class Tour
+{
+    city[] cities;
+    int numberCities;
+    Tour(int size)
+    {   numberCities = size;
+        cities = new city[size];
+        for (int i = 0; i < cities.length; i++)
+          cities[i] = new city();
+    }
+
+    double length()
+     {
+        double d = 0;
+        for (int i = 0; i < numberCities-1; i++)
+           d += distance(i, i+1);
+        return d + distance(0 , numberCities-1);
+    }
+
+    void firstShow(Graphics g)
+    {
+       for (int i = 0; i < numberCities-1; i++)
+         g.drawLine(cities[i].x, cities[i].y, cities[i+1].x, cities[i+1].y);
+       g.drawLine(cities[0].x, cities[0].y, cities[numberCities-1].x, cities[numberCities-1].y);
+       for (int i=0; i<numberCities; i++)
+          g.drawString(" "+i,cities[i].x,cities[i].y);
+    }
+
+     void lastShow(Graphics g)
+    {
+       for (int i = 0; i < numberCities-1; i++)
+         g.drawLine(cities[i].x, cities[i].y, cities[i+1].x, cities[i+1].y);
+       g.drawLine(cities[0].x, cities[0].y, cities[numberCities-1].x, cities[numberCities-1].y);
+       for (int i=0; i<numberCities; i++)
+          g.drawString("   "+i,cities[i].x,cities[i].y);
+    }
+
+    double distance(int i,int j)
+    {
+        double  dx = cities[i].x - cities[j].x;
+        double  dy = cities[i].y - cities[j].y;
+        return  Math.sqrt(dx*dx + dy*dy);
+    }
+
+    void swap(int i, int j)
+    {
+        city c = cities[i];
+        cities[i] = cities[j];
+        cities[j] = c;
+    }
+
+    boolean crossed(int i, int j)   // whether edge i.iSuc "cross" j.. jSuc
+    {
+        if (i == j) return false;
+        int iSuc = (i+1)%numberCities;   // may be wasteful, but safer
+        int jSuc = (j+1)%numberCities;
+        return distance(i,j) + distance(iSuc,jSuc) <
+               distance(i,iSuc) + distance(j,jSuc);
+    }
+
+    void uncross(int i, int j)
+    {
+        // assumes i < j  check boundaries  what if j+1 = numberCities?
+       for (int k = 0; k <= (j-i-1)/2 ; k++)
+           swap( i+1+k, j-k);
+    }
+
+    int uncrossit(Graphics g)
+    // The tricky part of this code is not testing 2 adjacents edges for crosses.
+    // You need to be careful when edge lands on 0. (temp helps this check)
+   {
+      int crosses = 0;
+      int temp;
+      int ypos = 20;
+      for (int i = 0; i < numberCities-1; i++)
+          { temp = (i > 0) ?  0 :  1;
+            for (int j = i+2; j < numberCities - temp; j++)
+              if (crossed(i,j))
+               {
+                  crosses++;
+                  uncross(i,j);
+                  g.drawString("swapped "+i+" "+j,5,ypos);
+                  ypos += 20;
+               }
+           }
+       return crosses;
+   }
+}
+
+class NextButton extends Button
+  {  ANI tsp;
+   NextButton(String s, ANI tsp) 
+    {     super(s);
+          this.tsp = tsp;
+     }
+   public boolean action(Event e, Object o)
+   {
+       int tourSize = Integer.parseInt(tsp.input.getText());
+       Tour t = new Tour(tourSize);
+       tsp.drawTour(t);
+       return true;
+    }
+ }
+
+public class ANI extends Applet
+{
+     TextField input;
+     Label output;
+     NextButton nb;
+
+    public void init()
+    {
+        resize(600,400);
+        output = new Label("Tour size? ");
+        input = new TextField(5);
+        nb = new NextButton("Next Tour",this);
+        add(nb);
+        add(output);
+        add(input);
+    }
+
+    public void drawTour(Tour t)
+    {
+         
+         Graphics g = getGraphics(); // gets Applet's graphics context
+         Dimension dim = size();
+         g.clearRect(0,0,dim.width,dim.height);
+         g.setColor(Color.black);
+         t.firstShow(g);
+         double d = t.length();
+         int crosses = t.uncrossit(g);
+         g.setColor(Color.magenta);
+         t.lastShow(g);
+         showStatus("Original length "+d+" Final length "+
+                 t.length()+ " after "+crosses+ " uncrossings");
+    }
+   
+}
